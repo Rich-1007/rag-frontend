@@ -1,0 +1,722 @@
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 16px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        /* ─── Header ─────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* ─── Cards ──────────────────────── */
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .icon {
+            font-size: 20px;
+        }
+
+        .step-badge {
+            background: #2a2a2a;
+            color: #888;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-left: auto;
+        }
+
+        /* ─── Upload Area ────────────────── */
+        .upload-area {
+            border: 2px dashed #333;
+            border-radius: 10px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #555;
+            background: #1f1f1f;
+        }
+
+        .upload-area.dragover {
+            border-color: #4f9cf7;
+            background: rgba(79, 156, 247, 0.05);
+        }
+
+        .upload-area.has-file {
+            border-color: #4f9cf7;
+            border-style: solid;
+        }
+
+        .upload-area .upload-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .upload-area .upload-text {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .upload-area .upload-text span {
+            color: #4f9cf7;
+            text-decoration: underline;
+        }
+
+        .upload-area .file-types {
+            font-size: 12px;
+            color: #555;
+            margin-top: 6px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* ─── Selected File ──────────────── */
+        .selected-file {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: #222;
+            border-radius: 8px;
+        }
+
+        .selected-file.show {
+            display: flex;
+        }
+
+        .selected-file .file-icon {
+            font-size: 22px;
+        }
+
+        .selected-file .file-name {
+            font-size: 13px;
+            color: #ccc;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .selected-file .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .selected-file .remove-btn {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        .selected-file .remove-btn:hover {
+            color: #e74c3c;
+        }
+
+        /* ─── Buttons ────────────────────── */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 14px;
+        }
+
+        .btn-upload {
+            background: #4f9cf7;
+            color: #fff;
+        }
+
+        .btn-upload:hover:not(:disabled) {
+            background: #3a8ae5;
+        }
+
+        .btn-upload:disabled {
+            background: #2a3a4a;
+            color: #556;
+            cursor: not-allowed;
+        }
+
+        .btn-ask {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .btn-ask:hover:not(:disabled) {
+            background: #219a52;
+        }
+
+        .btn-ask:disabled {
+            background: #1a3a2a;
+            color: #556;
+            cursor: not-allowed;
+        }
+
+        /* ─── Status Messages ────────────── */
+        .status {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 14px;
+        }
+
+        .status.show {
+            display: flex;
+        }
+
+        .status.loading {
+            background: rgba(79, 156, 247, 0.1);
+            border: 1px solid rgba(79, 156, 247, 0.2);
+            color: #4f9cf7;
+        }
+
+        .status.success {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+        }
+
+        .status.error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
+        /* ─── Spinner ────────────────────── */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ─── Ask Section ────────────────── */
+        .ask-section {
+            opacity: 0.4;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .ask-section.enabled {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 12px 14px;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .question-input:focus {
+            border-color: #27ae60;
+        }
+
+        .question-input::placeholder {
+            color: #555;
+        }
+
+        .btn-send {
+            padding: 12px 20px;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-send:hover:not(:disabled) {
+            background: #219a52;
+        }
+
+        .btn-send:disabled {
+            background: #1a3a2a;
+            color: #556;
+            cursor: not-allowed;
+        }
+
+        /* ─── Chat Messages ──────────────── */
+        .chat-area {
+            margin-top: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .chat-area::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .message.user {
+            background: #1e3a5f;
+            border: 1px solid #2a4a6f;
+            text-align: right;
+        }
+
+        .message.user .label {
+            font-size: 11px;
+            color: #4f9cf7;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .message.bot {
+            background: #1a2e1a;
+            border: 1px solid #2a3e2a;
+        }
+
+        .message.bot .label {
+            font-size: 11px;
+            color: #27ae60;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .message .sources {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #333;
+            padding-top: 8px;
+        }
+
+        /* ─── Disabled overlay text ──────── */
+        .lock-message {
+            text-align: center;
+            font-size: 13px;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        .lock-message .lock-icon {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1>🤖 RAG Agent</h1>
+        <p>Upload a document, then ask questions about it</p>
+    </div>
+
+    <!-- ════════════════════════════════════ -->
+    <!-- STEP 1: Upload Section              -->
+    <!-- ════════════════════════════════════ -->
+    <div class="card">
+        <div class="card-title">
+            <span class="icon">📄</span>
+            Upload Document
+            <span class="step-badge">STEP 1</span>
+        </div>
+
+        <!-- Drop Zone -->
+        <div class="upload-area" id="dropZone" onclick="fileInput.click()">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">
+                Drag & drop your file here or <span>browse</span>
+            </div>
+            <div class="file-types">Supports PDF and TXT files</div>
+        </div>
+
+        <input type="file" class="file-input" id="fileInput" accept=".pdf,.txt">
+
+        <!-- Selected File Display -->
+        <div class="selected-file" id="selectedFile">
+            <span class="file-icon">📎</span>
+            <span class="file-name" id="fileName"></span>
+            <span class="file-size" id="fileSize"></span>
+            <button class="remove-btn" onclick="removeFile()" title="Remove">✕</button>
+        </div>
+
+        <!-- Upload Button -->
+        <button class="btn btn-upload" id="uploadBtn" onclick="uploadFile()" disabled>
+            Upload & Process
+        </button>
+
+        <!-- Upload Status -->
+        <div class="status" id="uploadStatus">
+            <div class="spinner" id="uploadSpinner"></div>
+            <span id="uploadStatusText"></span>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════ -->
+    <!-- STEP 2: Ask Questions               -->
+    <!-- ════════════════════════════════════ -->
+    <div class="card ask-section" id="askSection">
+        <div class="card-title">
+            <span class="icon">💬</span>
+            Ask Questions
+            <span class="step-badge">STEP 2</span>
+        </div>
+
+        <div class="input-group">
+            <input
+                type="text"
+                class="question-input"
+                id="questionInput"
+                placeholder="Ask anything about your document..."
+                onkeydown="if(event.key==='Enter') askQuestion()"
+            >
+            <button class="btn-send" id="askBtn" onclick="askQuestion()">
+                Ask →
+            </button>
+        </div>
+
+        <!-- Ask Status -->
+        <div class="status" id="askStatus">
+            <div class="spinner" id="askSpinner"></div>
+            <span id="askStatusText"></span>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-area" id="chatArea"></div>
+
+        <!-- Lock Message (shown when disabled) -->
+        <div class="lock-message" id="lockMessage">
+            <span class="lock-icon">🔒</span> Upload a document first to start asking questions
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ═══════════════════════════════════════
+    // Configuration
+    // ═══════════════════════════════════════
+    const API_BASE = "http://localhost:5000";
+
+    // ═══════════════════════════════════════
+    // DOM Elements
+    // ═══════════════════════════════════════
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const selectedFile = document.getElementById("selectedFile");
+    const fileName = document.getElementById("fileName");
+    const fileSize = document.getElementById("fileSize");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const uploadSpinner = document.getElementById("uploadSpinner");
+    const uploadStatusText = document.getElementById("uploadStatusText");
+    const askSection = document.getElementById("askSection");
+    const questionInput = document.getElementById("questionInput");
+    const askBtn = document.getElementById("askBtn");
+    const askStatus = document.getElementById("askStatus");
+    const askSpinner = document.getElementById("askSpinner");
+    const askStatusText = document.getElementById("askStatusText");
+    const chatArea = document.getElementById("chatArea");
+    const lockMessage = document.getElementById("lockMessage");
+
+    let currentFile = null;
+
+    // ═══════════════════════════════════════
+    // Drag & Drop
+    // ═══════════════════════════════════════
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file) handleFileSelect(file);
+    });
+
+    fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) handleFileSelect(file);
+    });
+
+    // ═══════════════════════════════════════
+    // File Selection
+    // ═══════════════════════════════════════
+    function handleFileSelect(file) {
+        const allowed = [".pdf", ".txt"];
+        const ext = "." + file.name.split(".").pop().toLowerCase();
+
+        if (!allowed.includes(ext)) {
+            showUploadStatus("error", "❌ Only PDF and TXT files are supported");
+            return;
+        }
+
+        currentFile = file;
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        selectedFile.classList.add("show");
+        dropZone.classList.add("has-file");
+        uploadBtn.disabled = false;
+
+        // Hide any previous status
+        uploadStatus.classList.remove("show");
+    }
+
+    function removeFile() {
+        currentFile = null;
+        fileInput.value = "";
+        selectedFile.classList.remove("show");
+        dropZone.classList.remove("has-file");
+        uploadBtn.disabled = true;
+        uploadStatus.classList.remove("show");
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    // ═══════════════════════════════════════
+    // Upload File
+    // ═══════════════════════════════════════
+    async function uploadFile() {
+        if (!currentFile) return;
+
+        // Disable button, show loading
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "Processing...";
+        showUploadStatus("loading", "Uploading and processing document... This may take a minute.");
+
+        const formData = new FormData();
+        formData.append("file", currentFile);
+
+        try {
+            const response = await fetch(`${API_BASE}/upload`, {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const chunks = data.details?.chunks || "?";
+                const chars = data.details?.characters || "?";
+                showUploadStatus(
+                    "success",
+                    `✅ Done! Extracted ${chars.toLocaleString()} characters → ${chunks} chunks stored.`
+                );
+                enableAskSection();
+            } else {
+                showUploadStatus("error", `❌ Error: ${data.error}`);
+                uploadBtn.disabled = false;
+            }
+        } catch (err) {
+            showUploadStatus("error", `❌ Connection failed. Is the server running on ${API_BASE}?`);
+            uploadBtn.disabled = false;
+        }
+
+        uploadBtn.textContent = "Upload & Process";
+    }
+
+    // ═══════════════════════════════════════
+    // Ask Question
+    // ═══════════════════════════════════════
+    async function askQuestion() {
+        const query = questionInput.value.trim();
+        if (!query) return;
+
+        // Add user message to chat
+        addMessage("user", query);
+        questionInput.value = "";
+
+        // Disable input while processing
+        askBtn.disabled = true;
+        questionInput.disabled = true;
+        showAskStatus("loading", "Searching knowledge base and generating answer...");
+
+        try {
+            const response = await fetch(`${API_BASE}/ask`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: query, top_k: 5 })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const sources = data.sources?.join(", ") || "unknown";
+                const chunksUsed = data.chunks_used || 0;
+                addMessage("bot", data.answer, `Sources: ${sources} | Chunks used: ${chunksUsed}`);
+                hideAskStatus();
+            } else {
+                addMessage("bot", `Error: ${data.error}`);
+                showAskStatus("error", `❌ ${data.error}`);
+            }
+        } catch (err) {
+            addMessage("bot", "Connection failed. Is the server running?");
+            showAskStatus("error", "❌ Connection failed.");
+        }
+
+        // Re-enable input
+        askBtn.disabled = false;
+        questionInput.disabled = false;
+        questionInput.focus();
+    }
+
+    // ═══════════════════════════════════════
+    // Chat Messages
+    // ═══════════════════════════════════════
+    function addMessage(type, text, sourcesText = null) {
+        const msg = document.createElement("div");
+        msg.className = `message ${type}`;
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = type === "user" ? "YOU" : "RAG AGENT";
+        msg.appendChild(label);
+
+        const content = document.createElement("div");
+        content.textContent = text;
+        msg.appendChild(content);
+
+        if (sourcesText) {
+            const sources = document.createElement("div");
+            sources.className = "sources";
+            sources.textContent = sourcesText;
+            msg.appendChild(sources);
+        }
+
+        chatArea.appendChild(msg);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    // ═══════════════════════════════════════
+    // Status Helpers
+    // ═══════════════════════════════════════
+    function showUploadStatus(type, message) {
+        uploadStatus.className = `status show ${type}`;
+        uploadSpinner.style.display = type === "loading" ? "block" : "none";
+        uploadStatusText.textContent = message;
+    }
+
+    function showAskStatus(type, message) {
+        askStatus.className = `status show ${type}`;
+        askSpinner.style.display = type === "loading" ? "block" : "none";
+        askStatusText.textContent = message;
+    }
+
+    function hideAskStatus() {
+        askStatus.classList.remove("show");
+    }
+
+    function enableAskSection() {
+        askSection.classList.add("enabled");
+        lockMessage.style.display = "none";
+        questionInput.focus();
+    }
+</script>
+
+</body>
+</html>
